@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบทดสอบออนไลน์ วิชาวิทยาศาสตร์</title>
+  
+  <!-- Google Fonts: Sarabun -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    body {
+      font-family: 'Sarabun', sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+
+  <!-- Header Panel -->
+  <header class="bg-indigo-700 text-white shadow-lg sticky top-0 z-50">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <i class="fa-solid fa-atom text-2xl text-yellow-300"></i>
+        <h1 class="font-bold text-lg md:text-xl">วัดผลการเรียนรู้ วิชาวิทยาศาสตร์ (ว.22101)</h1>
+      </div>
+      <div id="timerContainer" class="hidden bg-indigo-900 px-3 py-1.5 rounded-lg font-mono text-yellow-300 text-sm md:text-base border border-indigo-500">
+        <i class="fa-regular fa-clock mr-1"></i> <span id="timer">60:00</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto p-4 md:p-6">
+
+    <!-- STEP 1: Student Information Form -->
+    <div id="stepStudentInfo" class="bg-white rounded-xl shadow-md p-6 md:p-8 mb-6 border border-slate-200">
+      <div class="border-b pb-4 mb-6">
+        <h2 class="text-2xl font-bold text-indigo-700"><i class="fa-solid fa-user-pen mr-2"></i>ตอนที่ 1: ข้อมูลผู้เข้าสอบ</h2>
+        <p class="text-slate-500 text-sm mt-1">กรุณากรอกข้อมูลส่วนตัวให้ครบถ้วนก่อนเริ่มทำข้อสอบ (ระยะเวลาสอบ 60 นาที)</p>
+      </div>
+
+      <form id="infoForm" onsubmit="startExam(event)" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1"><i class="fa-solid fa-school text-indigo-500 mr-1"></i> โรงเรียน</label>
+            <input type="text" id="school" value="โรงเรียนญัณญาร์วิทย์ อ.เมือง จ.ยะลา" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-slate-50">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1"><i class="fa-solid fa-id-card text-indigo-500 mr-1"></i> ชื่อ-นามสกุล</label>
+            <input type="text" id="fullName" placeholder="เช่น นายสมชาย ใจดี" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1"><i class="fa-solid fa-hashtag text-indigo-500 mr-1"></i> รหัสประจำตัว</label>
+            <input type="text" id="studentId" placeholder="เช่น 12345" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1"><i class="fa-solid fa-list-ol text-indigo-500 mr-1"></i> เลขที่</label>
+            <input type="number" id="number" placeholder="เช่น 1" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="pt-4">
+          <button type="submit" class="w-full md:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md transition duration-200 flex items-center justify-center space-x-2">
+            <span>เริ่มทำข้อสอบ</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- STEP 2: Quiz Form (Single Question Mode) -->
+    <div id="stepQuiz" class="hidden space-y-4">
+      <!-- Warning Box -->
+      <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded-r-lg shadow-sm text-xs md:text-sm text-yellow-700">
+        <i class="fa-solid fa-triangle-exclamation mr-1"></i> <strong>คำเตือน:</strong> ห้ามสลับหน้าจอเกิน <span class="font-bold text-red-600">3 ครั้ง</span> ระบบจะล็อกและส่งข้อสอบทันที
+      </div>
+
+      <!-- Question Navigation Grid -->
+      <div class="bg-white rounded-xl shadow-sm p-4 border border-slate-200">
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">ตารางข้อสอบ</span>
+          <span class="text-xs text-slate-500">ตอบแล้ว <span id="answeredCountText" class="font-bold text-emerald-600">0</span>/30 ข้อ</span>
+        </div>
+        <div id="navGrid" class="grid grid-cols-6 sm:grid-cols-10 gap-2">
+          <!-- Dynamic Nav Buttons -->
+        </div>
+      </div>
+
+      <!-- Question Card Container -->
+      <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 min-h-[300px] flex flex-col justify-between">
+        <div>
+          <!-- Header for Current Question -->
+          <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
+            <span class="bg-indigo-100 text-indigo-700 text-sm font-bold px-3 py-1 rounded-full" id="currentQuestionBadge">
+              ข้อที่ 1 / 30
+            </span>
+            <span class="text-xs text-slate-400" id="answeredStatusText">ยังไม่ได้ตอบ</span>
+          </div>
+
+          <!-- Question Content -->
+          <h3 id="questionText" class="font-semibold text-lg text-slate-800 mb-5 leading-relaxed">
+            <!-- Dynamic Question Text -->
+          </h3>
+
+          <!-- Options -->
+          <div id="optionsContainer" class="space-y-3">
+            <!-- Dynamic Options -->
+          </div>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="flex justify-between items-center pt-6 mt-6 border-t border-slate-100">
+          <button id="btnPrev" onclick="changeQuestion(-1)" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg transition flex items-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed">
+            <i class="fa-solid fa-chevron-left text-xs"></i>
+            <span>ข้อก่อนหน้า</span>
+          </button>
+
+          <button id="btnNext" onclick="changeQuestion(1)" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm transition flex items-center space-x-1">
+            <span>ข้อถัดไป</span>
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </button>
+
+          <button id="btnSubmit" onclick="confirmSubmit()" class="hidden px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-md transition items-center space-x-1">
+            <i class="fa-solid fa-paper-plane mr-1"></i>
+            <span>ส่งข้อสอบ</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3: Completed Screen -->
+    <div id="stepFinished" class="hidden bg-white rounded-xl shadow-lg p-8 text-center border border-slate-200 my-6">
+      <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl">
+        <i class="fa-solid fa-circle-check"></i>
+      </div>
+      <h2 class="text-3xl font-bold text-slate-800 mb-2">คุณส่งข้อสอบเรียบร้อยแล้ว</h2>
+      <p class="text-slate-500 mb-6">ระบบได้ทำการลงคะแนนและบันทึกผลการสอบของคุณแล้ว</p>
+      
+      <div class="max-w-md mx-auto bg-indigo-50 border border-indigo-100 rounded-2xl p-6 shadow-inner mb-6">
+        <div class="text-left space-y-2 mb-4 text-sm text-slate-600 border-b border-indigo-200 pb-4">
+          <p><span class="font-semibold text-slate-700">ชื่อ-นามสกุล:</span> <span id="resName"></span></p>
+          <p><span class="font-semibold text-slate-700">โรงเรียน:</span> <span id="resSchool"></span></p>
+          <p><span class="font-semibold text-slate-700">รหัสประจำตัว:</span> <span id="resId"></span> &nbsp;|&nbsp; <span class="font-semibold text-slate-700">เลขที่:</span> <span id="resNumber"></span></p>
+        </div>
+        <div>
+          <span class="text-xs font-bold text-indigo-600 uppercase tracking-wider block mb-1">คะแนนสอบที่ได้</span>
+          <span id="resScore" class="text-5xl font-black text-indigo-700">0</span>
+          <span id="resTotal" class="text-2xl font-bold text-slate-400">/ 30</span>
+        </div>
+      </div>
+      <p class="text-xs text-slate-400"><i class="fa-solid fa-lock mr-1"></i> ปิดระบบการตอบคำถามแล้ว คุณสามารถปิดหน้าต่างนี้ได้ทันที</p>
+    </div>
+
+  </main>
+
+  <script>
+    // URL Web App จาก Google Apps Script
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxQVKitzZ3GGU6SOs8OymGKgH4vo-17CvENG8_ZHLiKy24AgDst20tTQx6Lw-jPW_19Kg/exec";
+
+    let quizData = [];
+    let studentInfo = {};
+    let userAnswers = {};
+    let currentIndex = 0;
+    let timerInterval = null;
+    let totalSeconds = 3600; // 60 นาที
+    let tabSwitchCount = 0;
+    const maxTabSwitches = 3;
+    let isSubmitted = false;
+
+    // เริ่มทำข้อสอบ (ดึงข้อสอบผ่าน Fetch API)
+    async function startExam(e) {
+      e.preventDefault();
+      
+      studentInfo = {
+        school: document.getElementById('school').value,
+        fullName: document.getElementById('fullName').value,
+        studentId: document.getElementById('studentId').value,
+        number: document.getElementById('number').value
+      };
+
+      Swal.fire({
+        title: 'กำลังโหลดข้อสอบ...',
+        text: 'โปรดรอสักครู่ ระบบกำลังจัดเตรียมข้อสอบแบบสุ่มให้คุณ',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+      });
+
+      try {
+        const response = await fetch(`${WEB_APP_URL}?action=getQuiz`);
+        quizData = await response.json();
+        renderQuiz();
+      } catch (err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'เกิดข้อผิดพลาดในการโหลดข้อสอบ',
+          text: 'ไม่สามารถเชื่อมต่อระบบได้ กรุณาลองใหม่อีกครั้ง'
+        });
+      }
+    }
+
+    // แสดงหน้าข้อสอบ
+    function renderQuiz() {
+      Swal.close();
+
+      document.getElementById('stepStudentInfo').classList.add('hidden');
+      document.getElementById('stepQuiz').classList.remove('hidden');
+      document.getElementById('timerContainer').classList.remove('hidden');
+
+      renderNavGrid();
+      showQuestion(0);
+      startTimer();
+      setupTabSwitchDetector();
+    }
+
+    // สร้างปุ่ม Grid นำทางข้อสอบ
+    function renderNavGrid() {
+      const navGrid = document.getElementById('navGrid');
+      navGrid.innerHTML = '';
+
+      quizData.forEach((_, idx) => {
+        const btn = document.createElement('button');
+        btn.id = `nav_btn_${idx}`;
+        btn.innerText = idx + 1;
+        btn.onclick = () => jumpToQuestion(idx);
+        btn.className = `py-1.5 text-xs font-semibold rounded-lg border transition ${getNavBtnClass(idx)}`;
+        navGrid.appendChild(btn);
+      });
+    }
+
+    function getNavBtnClass(idx) {
+      if (idx === currentIndex) {
+        return 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-300';
+      }
+      if (userAnswers.hasOwnProperty(idx)) {
+        return 'bg-emerald-100 text-emerald-700 border-emerald-300';
+      }
+      return 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100';
+    }
+
+    function showQuestion(index) {
+      currentIndex = index;
+      const q = quizData[currentIndex];
+
+      document.getElementById('currentQuestionBadge').innerText = `ข้อที่ ${currentIndex + 1} / ${quizData.length}`;
+      document.getElementById('questionText').innerText = q.question;
+
+      const statusText = document.getElementById('answeredStatusText');
+      if (userAnswers.hasOwnProperty(currentIndex)) {
+        statusText.innerText = 'ตอบแล้ว';
+        statusText.className = 'text-xs text-emerald-600 font-bold';
+      } else {
+        statusText.innerText = 'ยังไม่ได้ตอบ';
+        statusText.className = 'text-xs text-amber-500 font-medium';
+      }
+
+      const optionsContainer = document.getElementById('optionsContainer');
+      optionsContainer.innerHTML = '';
+
+      q.options.forEach((opt, optIdx) => {
+        const isChecked = userAnswers[currentIndex] === optIdx;
+        optionsContainer.innerHTML += `
+          <label class="flex items-center p-3.5 rounded-xl border ${isChecked ? 'border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-500' : 'border-slate-200 hover:bg-slate-50'} cursor-pointer transition">
+            <input type="radio" name="current_option" value="${optIdx}" ${isChecked ? 'checked' : ''} onchange="selectOption(${optIdx})" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500">
+            <span class="ml-3 text-slate-700 text-sm md:text-base">${opt}</span>
+          </label>
+        `;
+      });
+
+      document.getElementById('btnPrev').disabled = (currentIndex === 0);
+      
+      const btnNext = document.getElementById('btnNext');
+      const btnSubmit = document.getElementById('btnSubmit');
+
+      if (currentIndex === quizData.length - 1) {
+        btnNext.classList.add('hidden');
+        btnSubmit.classList.remove('hidden');
+        btnSubmit.classList.add('flex');
+      } else {
+        btnNext.classList.remove('hidden');
+        btnSubmit.classList.add('hidden');
+        btnSubmit.classList.remove('flex');
+      }
+
+      renderNavGrid();
+    }
+
+    function selectOption(optIdx) {
+      userAnswers[currentIndex] = optIdx;
+      const answeredCount = Object.keys(userAnswers).length;
+      document.getElementById('answeredCountText').innerText = answeredCount;
+      showQuestion(currentIndex);
+    }
+
+    function changeQuestion(direction) {
+      let newIndex = currentIndex + direction;
+      if (newIndex >= 0 && newIndex < quizData.length) {
+        showQuestion(newIndex);
+      }
+    }
+
+    function jumpToQuestion(index) {
+      showQuestion(index);
+    }
+
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        totalSeconds--;
+        let minutes = Math.floor(totalSeconds / 60);
+        let seconds = totalSeconds % 60;
+
+        document.getElementById('timer').innerText = 
+          `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+        if (totalSeconds <= 0) {
+          clearInterval(timerInterval);
+          disableAllInputs();
+          Swal.fire({
+            icon: 'warning',
+            title: 'หมดเวลาทำข้อสอบ!',
+            text: 'ระบบได้ปิดรับคำตอบและกำลังส่งข้อสอบของคุณอัตโนมัติ',
+            allowOutsideClick: false
+          }).then(() => {
+            submitExam();
+          });
+        }
+      }, 1000);
+    }
+
+    function setupTabSwitchDetector() {
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && !isSubmitted) {
+          tabSwitchCount++;
+          if (tabSwitchCount >= maxTabSwitches) {
+            clearInterval(timerInterval);
+            disableAllInputs();
+
+            Swal.fire({
+              icon: 'error',
+              title: 'ถูกระงับการทำข้อสอบ!',
+              text: `คุณสลับหน้าจอเกิน ${maxTabSwitches} ครั้ง ระบบทำการล็อกและส่งข้อสอบทันที`,
+              allowOutsideClick: false
+            }).then(() => {
+              submitExam();
+            });
+          } else {
+            Swal.fire({
+              icon: 'warning',
+              title: 'เตือนการสลับหน้าจอ!',
+              text: `คุณสลับหน้าจอไปแล้ว ${tabSwitchCount}/${maxTabSwitches} ครั้ง หากเกินระบบจะล็อกและส่งข้อสอบทันที`,
+              confirmButtonText: 'รับทราบ'
+            });
+          }
+        }
+      });
+    }
+
+    function disableAllInputs() {
+      const inputs = document.querySelectorAll('input[type="radio"]');
+      inputs.forEach(input => input.disabled = true);
+      document.getElementById('btnPrev').disabled = true;
+      document.getElementById('btnNext').disabled = true;
+      document.getElementById('btnSubmit').disabled = true;
+    }
+
+    function confirmSubmit() {
+      if (isSubmitted) return;
+
+      let firstUnansweredIndex = -1;
+      for (let i = 0; i < quizData.length; i++) {
+        if (!userAnswers.hasOwnProperty(i)) {
+          firstUnansweredIndex = i;
+          break;
+        }
+      }
+
+      if (firstUnansweredIndex !== -1) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'ยังทำข้อสอบไม่ครบ!',
+          text: `กรุณาตอบข้อสอบให้ครบทุกข้อ (พบข้อที่ยังไม่ได้ตอบ เช่น ข้อที่ ${firstUnansweredIndex + 1})`,
+          confirmButtonText: 'ไปทำข้อที่ยังไม่ได้ตอบ',
+          confirmButtonColor: '#eab308'
+        }).then(() => {
+          showQuestion(firstUnansweredIndex);
+        });
+        return;
+      }
+
+      Swal.fire({
+        title: 'ยืนยันการส่งข้อสอบ',
+        text: 'คุณตอบครบทุกข้อแล้ว ต้องการส่งข้อสอบเลยหรือไม่?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#059669',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: '<i class="fa-solid fa-check"></i> ส่งข้อสอบ',
+        cancelButtonText: 'กลับไปตรวจสอบ'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          disableAllInputs();
+          submitExam();
+        }
+      });
+    }
+
+    // บันทึกคำตอบผ่าน Fetch POST ไปยัง Google Apps Script
+    async function submitExam() {
+      if (isSubmitted) return;
+      isSubmitted = true;
+
+      clearInterval(timerInterval);
+      disableAllInputs();
+
+      let score = 0;
+      quizData.forEach((q, index) => {
+        if (userAnswers[index] === q.answer) {
+          score++;
+        }
+      });
+
+      Swal.fire({
+        title: 'กำลังบันทึกคะแนน...',
+        text: 'กรุณารอระบบบันทึกผลสักครู่',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+      });
+
+      try {
+        await fetch(WEB_APP_URL, {
+          method: 'POST',
+          mode: 'no-cors', // รองรับการส่งข้าม Domain สู่ Google Apps Script
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            studentData: studentInfo,
+            score: score,
+            total: quizData.length
+          })
+        });
+
+        Swal.close();
+        
+        document.getElementById('stepQuiz').classList.add('hidden');
+        document.getElementById('timerContainer').classList.add('hidden');
+        
+        document.getElementById('resName').innerText = studentInfo.fullName;
+        document.getElementById('resSchool').innerText = studentInfo.school;
+        document.getElementById('resId').innerText = studentInfo.studentId;
+        document.getElementById('resNumber').innerText = studentInfo.number;
+        document.getElementById('resScore').innerText = score;
+        document.getElementById('resTotal').innerText = `/ ${quizData.length}`;
+        
+        document.getElementById('stepFinished').classList.remove('hidden');
+
+        Swal.fire({
+          icon: 'success',
+          title: 'คุณส่งข้อสอบเรียบร้อยแล้ว',
+          text: `คะแนนของคุณคือ ${score} / ${quizData.length} คะแนน`,
+          confirmButtonText: 'ตกลง',
+          confirmButtonColor: '#4f46e5'
+        });
+
+      } catch (err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'เกิดข้อผิดพลาดในการส่งข้อมูล',
+          text: 'ไม่สามารถบันทึกคะแนนได้ กรุณาติดต่อผู้ดูแลระบบ'
+        });
+      }
+    }
+  </script>
+</body>
+</html>
