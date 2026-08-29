@@ -80,7 +80,6 @@
 
     <!-- STEP 2: Quiz Form (Single Question Mode) -->
     <div id="stepQuiz" class="hidden space-y-4">
-      <!-- Warning Box -->
       <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded-r-lg shadow-sm text-xs md:text-sm text-yellow-700">
         <i class="fa-solid fa-triangle-exclamation mr-1"></i> <strong>คำเตือน:</strong> ห้ามสลับหน้าจอเกิน <span class="font-bold text-red-600">3 ครั้ง</span> ระบบจะล็อกและส่งข้อสอบทันที
       </div>
@@ -91,15 +90,12 @@
           <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">ตารางข้อสอบ</span>
           <span class="text-xs text-slate-500">ตอบแล้ว <span id="answeredCountText" class="font-bold text-emerald-600">0</span>/30 ข้อ</span>
         </div>
-        <div id="navGrid" class="grid grid-cols-6 sm:grid-cols-10 gap-2">
-          <!-- Dynamic Nav Buttons -->
-        </div>
+        <div id="navGrid" class="grid grid-cols-6 sm:grid-cols-10 gap-2"></div>
       </div>
 
       <!-- Question Card Container -->
       <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 min-h-[300px] flex flex-col justify-between">
         <div>
-          <!-- Header for Current Question -->
           <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
             <span class="bg-indigo-100 text-indigo-700 text-sm font-bold px-3 py-1 rounded-full" id="currentQuestionBadge">
               ข้อที่ 1 / 30
@@ -107,15 +103,9 @@
             <span class="text-xs text-slate-400" id="answeredStatusText">ยังไม่ได้ตอบ</span>
           </div>
 
-          <!-- Question Content -->
-          <h3 id="questionText" class="font-semibold text-lg text-slate-800 mb-5 leading-relaxed">
-            <!-- Dynamic Question Text -->
-          </h3>
+          <h3 id="questionText" class="font-semibold text-lg text-slate-800 mb-5 leading-relaxed"></h3>
 
-          <!-- Options -->
-          <div id="optionsContainer" class="space-y-3">
-            <!-- Dynamic Options -->
-          </div>
+          <div id="optionsContainer" class="space-y-3"></div>
         </div>
 
         <!-- Pagination Controls -->
@@ -164,20 +154,18 @@
   </main>
 
   <script>
-    // URL Web App จาก Google Apps Script
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxQVKitzZ3GGU6SOs8OymGKgH4vo-17CvENG8_ZHLiKy24AgDst20tTQx6Lw-jPW_19Kg/exec";
 
     let quizData = [];
     let studentInfo = {};
-    let userAnswers = {};
+    let userAnswers = {}; // เก็บดัชนีช้อยส์ที่เลือกในหน้านั้นๆ { index ข้อ: index ตัวเลือก }
     let currentIndex = 0;
     let timerInterval = null;
-    let totalSeconds = 3600; // 60 นาที
+    let totalSeconds = 3600; 
     let tabSwitchCount = 0;
     const maxTabSwitches = 3;
     let isSubmitted = false;
 
-    // เริ่มทำข้อสอบ (ดึงข้อสอบผ่าน Fetch API)
     async function startExam(e) {
       e.preventDefault();
       
@@ -208,10 +196,8 @@
       }
     }
 
-    // แสดงหน้าข้อสอบ
     function renderQuiz() {
       Swal.close();
-
       document.getElementById('stepStudentInfo').classList.add('hidden');
       document.getElementById('stepQuiz').classList.remove('hidden');
       document.getElementById('timerContainer').classList.remove('hidden');
@@ -222,7 +208,6 @@
       setupTabSwitchDetector();
     }
 
-    // สร้างปุ่ม Grid นำทางข้อสอบ
     function renderNavGrid() {
       const navGrid = document.getElementById('navGrid');
       navGrid.innerHTML = '';
@@ -413,7 +398,7 @@
       });
     }
 
-    // บันทึกคำตอบผ่าน Fetch POST ไปยัง Google Apps Script
+    // ส่งคำตอบ + คะแนนไปยัง Google Sheets
     async function submitExam() {
       if (isSubmitted) return;
       isSubmitted = true;
@@ -422,9 +407,23 @@
       disableAllInputs();
 
       let score = 0;
+      let detailedAnswers = {}; // เก็บตัวเลือก "ก, ข, ค, ง" แยกรายข้อ 1-30
+
       quizData.forEach((q, index) => {
-        if (userAnswers[index] === q.answer) {
+        const selectedOptIdx = userAnswers[index];
+        
+        // 1. ตรวจคะแนน
+        if (selectedOptIdx === q.answer) {
           score++;
+        }
+
+        // 2. ดึงตัวละครแรกของช้อยส์ที่เลือก (เช่น "ก. กลีบดอก" -> "ก")
+        if (selectedOptIdx !== undefined && q.options[selectedOptIdx]) {
+          const optText = q.options[selectedOptIdx].trim();
+          const firstChar = optText.charAt(0); // ได้ 'ก', 'ข', 'ค', หรือ 'ง'
+          detailedAnswers[index + 1] = firstChar;
+        } else {
+          detailedAnswers[index + 1] = "-"; // ไม่ได้ตอบ
         }
       });
 
@@ -438,12 +437,13 @@
       try {
         await fetch(WEB_APP_URL, {
           method: 'POST',
-          mode: 'no-cors', // รองรับการส่งข้าม Domain สู่ Google Apps Script
+          mode: 'no-cors',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             studentData: studentInfo,
             score: score,
-            total: quizData.length
+            total: quizData.length,
+            answers: detailedAnswers // ส่งตัวเลือกรายข้อไปบันทึก
           })
         });
 
